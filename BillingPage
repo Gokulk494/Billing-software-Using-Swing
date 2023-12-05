@@ -1,0 +1,155 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.List;
+
+class MenuItem {
+    String name;
+    double price;
+
+    public MenuItem(String name, double price) {
+        this.name = name;
+        this.price = price;
+    }
+}
+
+class Order {
+    List<MenuItem> items = new ArrayList<>();
+
+    public void addItem(MenuItem item) {
+        items.add(item);
+    }
+
+    public double calculateTotal() {
+        return items.stream().mapToDouble(item -> item.price).sum();
+    }
+
+    public void clearOrder() {
+        items.clear();
+    }
+}
+
+public class Bill extends JFrame {
+    private final DefaultListModel<String> menuListModel;
+    private final DefaultListModel<String> orderListModel;
+    private final Order order;
+    private final DecimalFormat df;
+
+    public Bill() {
+        // Initialize menuListModel before using it
+        menuListModel = new DefaultListModel<>();
+
+        order = new Order();
+        df = new DecimalFormat("#.##");
+
+        // GUI Initialization
+        setTitle("Pizza Shop Billing System");
+        setSize(600, 400);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+        getContentPane().setBackground(Color.GREEN);
+
+        // Label for prompting the user
+        JLabel promptLabel = new JLabel("Choose your favorite items:");
+        add(promptLabel, BorderLayout.NORTH);
+
+        // Menu List
+        JList<String> menuList = new JList<>(menuListModel);
+        JScrollPane menuScrollPane = new JScrollPane(menuList);
+        add(menuScrollPane, BorderLayout.WEST);
+
+        // Order List
+        orderListModel = new DefaultListModel<>();
+        JList<String> orderList = new JList<>(orderListModel);
+        JScrollPane orderScrollPane = new JScrollPane(orderList);
+        add(orderScrollPane, BorderLayout.CENTER);
+
+        JButton printButton = new JButton("Print Bill");
+        add(printButton, BorderLayout.SOUTH);
+
+        // Event Listeners
+        menuList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        menuList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                addSelectedItems(menuList.getSelectedValuesList());
+            }
+        });
+
+        printButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                printBill();
+            }
+        });
+
+        // Initial menu items
+        String[] menuItems = {
+                "Margherita Pizza - $10.99",
+                "Pepperoni Pizza - $12.99",
+                "Vegetarian Pizza - $11.99",
+                "Cheeseburger - $8.99",
+                "Chicken Burger - $9.99",
+                "Ice Cream Sundae - $6.99",
+                "Chocolate Ice Cream - $4.99",
+                "Strawberry Juice - $3.99"
+        };
+
+        for (String menuItem : menuItems) {
+            menuListModel.addElement(menuItem);
+        }
+
+        // Center the frame
+        setLocationRelativeTo(null);
+    }
+
+    private void addSelectedItems(List<String> selectedItems) {
+        for (String selectedItem : selectedItems) {
+            String[] parts = selectedItem.split(" - ");
+            String itemName = parts[0];
+            double itemPrice = Double.parseDouble(parts[1].substring(1)); // Remove the dollar sign
+            order.addItem(new MenuItem(itemName, itemPrice));
+        }
+
+        updateOrderList();
+    }
+
+    private void printBill() {
+        double total = order.calculateTotal();
+        if (total > 0) {
+            // Implement bill printing logic
+            StringBuilder bill = new StringBuilder();
+            bill.append("************* Pizza Shop Bill *************\n");
+            for (MenuItem item : order.items) {
+                bill.append(item.name).append("\t$").append(df.format(item.price)).append("\n");
+            }
+            bill.append("\nTotal: $").append(df.format(total));
+
+            JTextArea billTextArea = new JTextArea(bill.toString());
+            billTextArea.setEditable(false);
+
+            JScrollPane scrollPane = new JScrollPane(billTextArea);
+            JOptionPane.showMessageDialog(this, scrollPane, "Bill", JOptionPane.INFORMATION_MESSAGE);
+
+            // Clear the order after printing
+            order.clearOrder();
+            orderListModel.clear();
+        } else {
+            JOptionPane.showMessageDialog(this, "Order is empty!", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void updateOrderList() {
+        // Clear the existing order list model and add the updated items
+        orderListModel.clear();
+        for (MenuItem item : order.items) {
+            orderListModel.addElement(item.name + "\t$" + df.format(item.price));
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new Bill().setVisible(true));
+    }
+}
